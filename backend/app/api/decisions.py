@@ -1,5 +1,6 @@
 import json
 import os
+from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
@@ -83,6 +84,14 @@ async def create_decision(
 
     keyword_ids = metadata.pop("keyword_ids", [])
     keywords = db.query(Keyword).filter(Keyword.id.in_(keyword_ids)).all() if keyword_ids else []
+
+    # Parse date strings to datetime objects
+    for date_field in ("hearing_date", "decision_date"):
+        if date_field in metadata and isinstance(metadata[date_field], str):
+            try:
+                metadata[date_field] = datetime.fromisoformat(metadata[date_field])
+            except ValueError:
+                metadata[date_field] = None
 
     decision = Decision(
         pdf_filename=safe_filename,

@@ -1,4 +1,4 @@
-import uuid
+import uuid as uuid_mod
 from datetime import datetime
 
 from sqlalchemy import (
@@ -10,25 +10,52 @@ from sqlalchemy import (
     String,
     Table,
     Text,
+    TypeDecorator,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
+
+
+class GUID(TypeDecorator):
+    """Cross-database UUID type. Uses PostgreSQL UUID, falls back to CHAR(36)."""
+    impl = String(36)
+    cache_ok = True
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == "postgresql":
+            return dialect.type_descriptor(PG_UUID(as_uuid=True))
+        return dialect.type_descriptor(String(36))
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return value
+        if dialect.name == "postgresql":
+            return value
+        return str(value)
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return value
+        if not isinstance(value, uuid_mod.UUID):
+            return uuid_mod.UUID(str(value))
+        return value
+
 
 # Many-to-many: decisions <-> keywords
 decision_keywords = Table(
     "decision_keywords",
     Base.metadata,
-    Column("decision_id", UUID(as_uuid=True), ForeignKey("decisions.id", ondelete="CASCADE"), primary_key=True),
-    Column("keyword_id", UUID(as_uuid=True), ForeignKey("keywords.id", ondelete="CASCADE"), primary_key=True),
+    Column("decision_id", GUID(), ForeignKey("decisions.id", ondelete="CASCADE"), primary_key=True),
+    Column("keyword_id", GUID(), ForeignKey("keywords.id", ondelete="CASCADE"), primary_key=True),
 )
 
 
 class Keyword(Base):
     __tablename__ = "keywords"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(GUID(), primary_key=True, default=uuid_mod.uuid4)
     name = Column(String(100), unique=True, nullable=False, index=True)
     description = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -39,11 +66,11 @@ class Keyword(Base):
 class Decision(Base):
     __tablename__ = "decisions"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(GUID(), primary_key=True, default=uuid_mod.uuid4)
 
     # Case info
     case_number = Column(String(100), nullable=True, index=True)
-    city = Column(String(50), nullable=False, index=True)  # "East Palo Alto" or "Mountain View"
+    city = Column(String(50), nullable=False, index=True)
     address = Column(String(255), nullable=True)
     unit = Column(String(50), nullable=True)
 
@@ -56,7 +83,7 @@ class Decision(Base):
     decision_date = Column(DateTime, nullable=True)
 
     # Decision details
-    decision_type = Column(String(100), nullable=True)  # HODecision, AppealDecision, etc.
+    decision_type = Column(String(100), nullable=True)
     hearing_officer = Column(String(255), nullable=True)
     outcome_summary = Column(Text, nullable=True)
     amount_awarded = Column(Numeric(10, 2), nullable=True)
@@ -68,7 +95,7 @@ class Decision(Base):
     # Metadata
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    uploaded_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    uploaded_by = Column(GUID(), ForeignKey("users.id"), nullable=True)
 
     # Relationships
     keywords = relationship("Keyword", secondary=decision_keywords, back_populates="decisions")
@@ -78,7 +105,7 @@ class Decision(Base):
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(GUID(), primary_key=True, default=uuid_mod.uuid4)
     email = Column(String(255), unique=True, nullable=False, index=True)
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(255), nullable=True)
@@ -92,11 +119,11 @@ class User(Base):
 class AuditLog(Base):
     __tablename__ = "audit_logs"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    action = Column(String(50), nullable=False)  # "create", "update", "delete"
-    entity_type = Column(String(50), nullable=False)  # "decision", "keyword", "user"
-    entity_id = Column(UUID(as_uuid=True), nullable=False)
+    id = Column(GUID(), primary_key=True, default=uuid_mod.uuid4)
+    user_id = Column(GUID(), ForeignKey("users.id"), nullable=False)
+    action = Column(String(50), nullable=False)
+    entity_type = Column(String(50), nullable=False)
+    entity_id = Column(GUID(), nullable=False)
     details = Column(Text, nullable=True)
     timestamp = Column(DateTime, default=datetime.utcnow)
 
