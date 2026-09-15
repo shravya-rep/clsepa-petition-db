@@ -21,6 +21,23 @@ def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get
     return {"access_token": token}
 
 
+@router.post("/setup", response_model=UserOut)
+def setup_first_admin(user_in: UserCreate, db: Session = Depends(get_db)):
+    """One-time setup: create the first admin user. Only works if no users exist."""
+    if db.query(User).count() > 0:
+        raise HTTPException(status_code=403, detail="Setup already completed")
+    user = User(
+        email=user_in.email,
+        hashed_password=hash_password(user_in.password),
+        full_name=user_in.full_name,
+        is_admin=True,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
 @router.post("/register", response_model=UserOut)
 def register_admin(user_in: UserCreate, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
     if db.query(User).filter(User.email == user_in.email).first():
