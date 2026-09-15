@@ -1,6 +1,6 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import client from "../api/client";
-import { User } from "../api/types";
+import type { User } from "../api/types";
 
 interface AuthState {
   user: User | null;

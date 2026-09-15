@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import client from "../api/client";
-import { Decision, Keyword } from "../api/types";
+import type { Decision, Keyword } from "../api/types";
 
 export default function SearchPage() {
   const [decisions, setDecisions] = useState<Decision[]>([]);

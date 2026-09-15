@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import client from "../api/client";
 import { useAuth } from "../context/AuthContext";
-import { Decision, Keyword } from "../api/types";
+import type { Decision, Keyword } from "../api/types";
 
 export default function AdminPage() {
   const { isAdmin, logout } = useAuth();

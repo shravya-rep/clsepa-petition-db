@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import client from "../api/client";
-import { Decision } from "../api/types";
+import type { Decision } from "../api/types";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
