@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import audit, auth, decisions, keywords, pdfs
+from app.api import audit, auth, decisions, extract, keywords, pdfs
 from app.core.config import settings
 from app.core.database import Base, engine
 
@@ -28,6 +28,7 @@ app.include_router(auth.router)
 app.include_router(decisions.router)
 app.include_router(keywords.router)
 app.include_router(pdfs.router)
+app.include_router(extract.router)
 app.include_router(audit.router)
 
 

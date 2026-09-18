@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import client from "../api/client";
 import { useAuth } from "../context/AuthContext";
@@ -29,7 +29,11 @@ export default function AdminPage() {
     amount_awarded: "",
   });
   const [uploading, setUploading] = useState(false);
+  const [extracting, setExtracting] = useState(false);
   const [message, setMessage] = useState("");
+  const [extractInfo, setExtractInfo] = useState("");
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Keyword form
   const [newKeyword, setNewKeyword] = useState("");
@@ -45,6 +49,61 @@ export default function AdminPage() {
   const loadData = () => {
     client.get("/api/keywords/").then((r) => setKeywords(r.data));
     client.get("/api/decisions/").then((r) => setDecisions(r.data));
+  };
+
+  const handleFileSelect = async (file: File) => {
+    setPdf(file);
+    setMessage("");
+    setExtractInfo("");
+    setExtracting(true);
+
+    // Auto-extract metadata from the PDF
+    const formData = new FormData();
+    formData.append("pdf", file);
+
+    try {
+      const res = await client.post("/api/extract/", formData);
+      const d = res.data;
+      setMeta({
+        city: d.city || "East Palo Alto",
+        case_number: d.case_number || "",
+        address: d.address || "",
+        unit: d.unit || "",
+        petitioner_name: d.petitioner_name || "",
+        respondent_name: d.respondent_name || "",
+        hearing_date: d.hearing_date || "",
+        decision_date: d.decision_date || "",
+        decision_type: d.decision_type || "HODecision",
+        hearing_officer: d.hearing_officer || "",
+        outcome_summary: "",
+        amount_awarded: "",
+      });
+
+      if (d.confidence === "high") {
+        setExtractInfo("Fields auto-filled from PDF. Please review before uploading.");
+      } else if (d.confidence === "medium") {
+        setExtractInfo("Some fields auto-filled. Please review and complete missing fields.");
+      } else {
+        setExtractInfo("Could not extract fields from this PDF. Please fill in manually.");
+      }
+
+      if (d.warnings && d.warnings.length > 0) {
+        setExtractInfo((prev) => prev + " Note: " + d.warnings.join("; "));
+      }
+    } catch {
+      setExtractInfo("Could not auto-extract fields. Please fill in manually.");
+    }
+
+    setExtracting(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type === "application/pdf") {
+      handleFileSelect(file);
+    }
   };
 
   const handleUpload = async (e: React.FormEvent) => {
@@ -69,12 +128,14 @@ export default function AdminPage() {
       setMessage("Decision uploaded successfully!");
       setPdf(null);
       setSelectedKeywords([]);
+      setExtractInfo("");
       setMeta({
         city: "East Palo Alto", case_number: "", address: "", unit: "",
         petitioner_name: "", respondent_name: "", hearing_date: "",
         decision_date: "", decision_type: "HODecision", hearing_officer: "",
         outcome_summary: "", amount_awarded: "",
       });
+      if (fileInputRef.current) fileInputRef.current.value = "";
       loadData();
     } catch {
       setMessage("Upload failed. Please try again.");
@@ -139,51 +200,102 @@ export default function AdminPage() {
             </p>
           )}
 
+          {/* Step 1: File Upload Area */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">PDF File *</label>
-            <input
-              type="file"
-              accept=".pdf"
-              required
-              onChange={(e) => setPdf(e.target.files?.[0] || null)}
-              className="text-sm"
-            />
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Step 1: Select Decision PDF
+            </label>
+            <div
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                dragOver
+                  ? "border-blue-500 bg-blue-50"
+                  : pdf
+                  ? "border-green-400 bg-green-50"
+                  : "border-gray-300 hover:border-blue-400 hover:bg-gray-50"
+              }`}
+            >
+              {extracting ? (
+                <div>
+                  <p className="text-blue-700 font-medium">Extracting data from PDF...</p>
+                  <p className="text-sm text-gray-500 mt-1">Auto-filling fields below</p>
+                </div>
+              ) : pdf ? (
+                <div>
+                  <p className="text-green-700 font-medium">{pdf.name}</p>
+                  <p className="text-sm text-gray-500 mt-1">Click or drag to replace</p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-gray-600 font-medium">Click to browse or drag and drop a PDF here</p>
+                  <p className="text-sm text-gray-400 mt-1">The form below will auto-fill from the PDF</p>
+                </div>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleFileSelect(file);
+                }}
+              />
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
-              <select
-                value={meta.city}
-                onChange={(e) => setMeta({ ...meta, city: e.target.value })}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-              >
-                <option>East Palo Alto</option>
-                <option>Mountain View</option>
-              </select>
+          {extractInfo && (
+            <p className={`text-sm p-3 rounded ${
+              extractInfo.includes("auto-filled") ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"
+            }`}>
+              {extractInfo}
+            </p>
+          )}
+
+          {/* Step 2: Review/Edit Fields */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Step 2: Review and complete the details
+            </label>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
+                <select
+                  value={meta.city}
+                  onChange={(e) => setMeta({ ...meta, city: e.target.value })}
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                >
+                  <option>East Palo Alto</option>
+                  <option>Mountain View</option>
+                </select>
+              </div>
+              <Field label="Case Number" value={meta.case_number} onChange={(v) => setMeta({ ...meta, case_number: v })} />
+              <Field label="Address" value={meta.address} onChange={(v) => setMeta({ ...meta, address: v })} />
+              <Field label="Unit" value={meta.unit} onChange={(v) => setMeta({ ...meta, unit: v })} />
+              <Field label="Petitioner Name" value={meta.petitioner_name} onChange={(v) => setMeta({ ...meta, petitioner_name: v })} />
+              <Field label="Respondent Name" value={meta.respondent_name} onChange={(v) => setMeta({ ...meta, respondent_name: v })} />
+              <Field label="Hearing Date" value={meta.hearing_date} onChange={(v) => setMeta({ ...meta, hearing_date: v })} type="date" />
+              <Field label="Decision Date" value={meta.decision_date} onChange={(v) => setMeta({ ...meta, decision_date: v })} type="date" />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Decision Type</label>
+                <select
+                  value={meta.decision_type}
+                  onChange={(e) => setMeta({ ...meta, decision_type: e.target.value })}
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                >
+                  <option value="HODecision">Hearing Officer Decision</option>
+                  <option value="AppealDecision">Appeal Decision</option>
+                  <option value="HOCPDecision">HOCP Decision</option>
+                  <option value="RemandAppealDecision">Remand Appeal Decision</option>
+                </select>
+              </div>
+              <Field label="Hearing Officer" value={meta.hearing_officer} onChange={(v) => setMeta({ ...meta, hearing_officer: v })} />
+              <Field label="Amount Awarded ($)" value={meta.amount_awarded} onChange={(v) => setMeta({ ...meta, amount_awarded: v })} type="number" />
             </div>
-            <Field label="Case Number" value={meta.case_number} onChange={(v) => setMeta({ ...meta, case_number: v })} />
-            <Field label="Address" value={meta.address} onChange={(v) => setMeta({ ...meta, address: v })} />
-            <Field label="Unit" value={meta.unit} onChange={(v) => setMeta({ ...meta, unit: v })} />
-            <Field label="Petitioner Name" value={meta.petitioner_name} onChange={(v) => setMeta({ ...meta, petitioner_name: v })} />
-            <Field label="Respondent Name" value={meta.respondent_name} onChange={(v) => setMeta({ ...meta, respondent_name: v })} />
-            <Field label="Hearing Date" value={meta.hearing_date} onChange={(v) => setMeta({ ...meta, hearing_date: v })} type="date" />
-            <Field label="Decision Date" value={meta.decision_date} onChange={(v) => setMeta({ ...meta, decision_date: v })} type="date" />
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Decision Type</label>
-              <select
-                value={meta.decision_type}
-                onChange={(e) => setMeta({ ...meta, decision_type: e.target.value })}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-              >
-                <option value="HODecision">Hearing Officer Decision</option>
-                <option value="AppealDecision">Appeal Decision</option>
-                <option value="HOCPDecision">HOCP Decision</option>
-                <option value="RemandAppealDecision">Remand Appeal Decision</option>
-              </select>
-            </div>
-            <Field label="Hearing Officer" value={meta.hearing_officer} onChange={(v) => setMeta({ ...meta, hearing_officer: v })} />
-            <Field label="Amount Awarded ($)" value={meta.amount_awarded} onChange={(v) => setMeta({ ...meta, amount_awarded: v })} type="number" />
           </div>
 
           <div>
@@ -196,9 +308,10 @@ export default function AdminPage() {
             />
           </div>
 
+          {/* Step 3: Select Keywords */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Issues / Categories (select all that apply)
+              Step 3: Select issues / categories that apply
             </label>
             <div className="flex flex-wrap gap-2">
               {keywords.map((k) => (
@@ -224,7 +337,7 @@ export default function AdminPage() {
           <button
             type="submit"
             disabled={uploading || !pdf}
-            className="bg-blue-700 text-white px-6 py-2.5 rounded-md hover:bg-blue-800 text-sm font-medium disabled:opacity-50"
+            className="bg-blue-700 text-white px-8 py-3 rounded-md hover:bg-blue-800 text-sm font-medium disabled:opacity-50"
           >
             {uploading ? "Uploading..." : "Upload Decision"}
           </button>
