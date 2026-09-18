@@ -83,12 +83,17 @@ async def create_decision(
         raise HTTPException(status_code=409, detail=f"A decision with this filename already exists: {safe_filename}")
 
     case_number = metadata.get("case_number", "")
+    decision_type = metadata.get("decision_type", "")
     if case_number:
-        existing_case = db.query(Decision).filter(Decision.case_number == case_number).first()
+        existing_case = (
+            db.query(Decision)
+            .filter(Decision.case_number == case_number, Decision.decision_type == decision_type)
+            .first()
+        )
         if existing_case:
             raise HTTPException(
                 status_code=409,
-                detail=f"A decision with case number {case_number} already exists ({existing_case.pdf_filename})"
+                detail=f"A decision with case number {case_number} ({decision_type}) already exists ({existing_case.pdf_filename})"
             )
 
     pdf_path = os.path.join(settings.PDF_UPLOAD_DIR, safe_filename)
