@@ -3,6 +3,16 @@ import { Link } from "react-router-dom";
 import client from "../api/client";
 import type { Decision, Keyword } from "../api/types";
 
+function formatType(t: string | null): string {
+  const labels: Record<string, string> = {
+    HODecision: "Hearing Officer Decision",
+    AppealDecision: "Appeal Decision",
+    HOCPDecision: "HOCP Decision",
+    RemandAppealDecision: "Remand Appeal Decision",
+  };
+  return t ? labels[t] || t : "Decision";
+}
+
 export default function SearchPage() {
   const [decisions, setDecisions] = useState<Decision[]>([]);
   const [keywords, setKeywords] = useState<Keyword[]>([]);
@@ -157,8 +167,9 @@ export default function SearchPage() {
                     {d.unit && `, Unit ${d.unit}`}
                   </h3>
                   <p className="text-sm text-gray-500 mt-1">
-                    {d.city} &middot; {d.case_number || "No case #"} &middot;{" "}
-                    {d.decision_type || "Decision"}
+                    {d.city}
+                    {d.case_number && <> &middot; {d.case_number}</>}
+                    {" "}&middot; {formatType(d.decision_type)}
                   </p>
                 </div>
                 <div className="text-right">
@@ -181,7 +192,7 @@ export default function SearchPage() {
               )}
               {d.keywords.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mt-3">
-                  {d.keywords.map((k) => (
+                  {d.keywords.slice(0, 5).map((k) => (
                     <span
                       key={k.id}
                       className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full"
@@ -189,6 +200,11 @@ export default function SearchPage() {
                       {k.name}
                     </span>
                   ))}
+                  {d.keywords.length > 5 && (
+                    <span className="text-gray-400 text-xs px-2 py-0.5">
+                      +{d.keywords.length - 5} more
+                    </span>
+                  )}
                 </div>
               )}
             </Link>

@@ -5,6 +5,16 @@ import type { Decision } from "../api/types";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
+function formatType(t: string | null): string {
+  const labels: Record<string, string> = {
+    HODecision: "Hearing Officer Decision",
+    AppealDecision: "Appeal Decision",
+    HOCPDecision: "HOCP Decision",
+    RemandAppealDecision: "Remand Appeal Decision",
+  };
+  return t ? labels[t] || t : "Decision";
+}
+
 export default function DecisionPage() {
   const { id } = useParams<{ id: string }>();
   const [decision, setDecision] = useState<Decision | null>(null);
@@ -33,11 +43,12 @@ export default function DecisionPage() {
           {decision.unit && `, Unit ${decision.unit}`}
         </h1>
         <p className="text-gray-500 mb-6">
-          {decision.city} &middot; {decision.case_number || "No case #"}
+          {decision.city}
+          {decision.case_number && <> &middot; Case {decision.case_number}</>}
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <Detail label="Decision Type" value={decision.decision_type} />
+          <Detail label="Decision Type" value={formatType(decision.decision_type)} />
           <Detail label="Hearing Officer" value={decision.hearing_officer} />
           <Detail label="Hearing Date" value={decision.hearing_date ? new Date(decision.hearing_date).toLocaleDateString() : null} />
           <Detail label="Decision Date" value={decision.decision_date ? new Date(decision.decision_date).toLocaleDateString() : null} />
