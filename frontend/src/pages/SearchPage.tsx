@@ -21,6 +21,8 @@ export default function SearchPage() {
     city: "",
     decision_type: "",
     q: "",
+    date_from: "",
+    date_to: "",
   });
   const [loading, setLoading] = useState(false);
 
@@ -36,6 +38,8 @@ export default function SearchPage() {
     if (filters.city) params.append("city", filters.city);
     if (filters.decision_type) params.append("decision_type", filters.decision_type);
     if (filters.q) params.append("q", filters.q);
+    if (filters.date_from) params.append("date_from", filters.date_from);
+    if (filters.date_to) params.append("date_to", filters.date_to);
     try {
       const res = await client.get(`/api/decisions/?${params}`);
       setDecisions(res.data);
@@ -130,6 +134,31 @@ export default function SearchPage() {
               placeholder="Case # or address..."
               value={filters.q}
               onChange={(e) => setFilters({ ...filters, q: e.target.value })}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Decision Date From
+            </label>
+            <input
+              type="date"
+              value={filters.date_from}
+              onChange={(e) => setFilters({ ...filters, date_from: e.target.value })}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Decision Date To
+            </label>
+            <input
+              type="date"
+              value={filters.date_to}
+              onChange={(e) => setFilters({ ...filters, date_to: e.target.value })}
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
             />
           </div>
