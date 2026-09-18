@@ -77,10 +77,19 @@ async def create_decision(
     os.makedirs(settings.PDF_UPLOAD_DIR, exist_ok=True)
     safe_filename = pdf.filename.replace("/", "_").replace("\\", "_")
 
-    # Duplicate detection
+    # Duplicate detection — check filename and case number
     existing = db.query(Decision).filter(Decision.pdf_filename == safe_filename).first()
     if existing:
         raise HTTPException(status_code=409, detail=f"A decision with this filename already exists: {safe_filename}")
+
+    case_number = metadata.get("case_number", "")
+    if case_number:
+        existing_case = db.query(Decision).filter(Decision.case_number == case_number).first()
+        if existing_case:
+            raise HTTPException(
+                status_code=409,
+                detail=f"A decision with case number {case_number} already exists ({existing_case.pdf_filename})"
+            )
 
     pdf_path = os.path.join(settings.PDF_UPLOAD_DIR, safe_filename)
 
