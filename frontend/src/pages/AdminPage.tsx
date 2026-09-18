@@ -137,8 +137,13 @@ export default function AdminPage() {
       });
       if (fileInputRef.current) fileInputRef.current.value = "";
       loadData();
-    } catch {
-      setMessage("Upload failed. Please try again.");
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      if (msg && msg.includes("already exists")) {
+        setMessage("This decision has already been uploaded. Please choose a different file.");
+      } else {
+        setMessage("Upload failed. Please try again.");
+      }
     }
     setUploading(false);
   };
