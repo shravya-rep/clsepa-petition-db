@@ -131,7 +131,7 @@ export default function SearchPage() {
             </label>
             <input
               type="text"
-              placeholder="Case # or address..."
+              placeholder="Search anything..."
               value={filters.q}
               onChange={(e) => setFilters({ ...filters, q: e.target.value })}
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"

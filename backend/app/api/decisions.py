@@ -42,12 +42,17 @@ def search_decisions(
     if date_to:
         query = query.filter(Decision.decision_date <= date_to)
     if q:
-        query = query.filter(
+        query = query.outerjoin(Decision.keywords).filter(
             or_(
                 Decision.case_number.ilike(f"%{q}%"),
                 Decision.address.ilike(f"%{q}%"),
+                Decision.petitioner_name.ilike(f"%{q}%"),
+                Decision.respondent_name.ilike(f"%{q}%"),
+                Decision.hearing_officer.ilike(f"%{q}%"),
+                Decision.outcome_summary.ilike(f"%{q}%"),
+                Keyword.name.ilike(f"%{q}%"),
             )
-        )
+        ).distinct()
 
     return query.order_by(Decision.decision_date.desc()).all()
 
