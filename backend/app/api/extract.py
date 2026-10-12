@@ -107,7 +107,7 @@ DOCUMENT:
             ai_data = json.loads(json_match.group())
             # Merge: AI fills in what pdfplumber missed
             for key, val in ai_data.items():
-                if val and not pdfplumber_result.get(key):
+                if val is not None and (not pdfplumber_result.get(key) or key in ("suggested_keywords", "amount_awarded", "outcome_summary")):
                     pdfplumber_result[key] = val
             return pdfplumber_result
     except Exception:
