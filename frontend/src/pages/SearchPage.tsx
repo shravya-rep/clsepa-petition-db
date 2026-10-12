@@ -16,10 +16,14 @@ function formatType(t: string | null): string {
 export default function SearchPage() {
   const [decisions, setDecisions] = useState<Decision[]>([]);
   const [keywords, setKeywords] = useState<Keyword[]>([]);
+  const [landlords, setLandlords] = useState<string[]>([]);
+  const [officers, setOfficers] = useState<string[]>([]);
   const [filters, setFilters] = useState({
     keyword: "",
     city: "",
     decision_type: "",
+    landlord: "",
+    hearing_officer: "",
     q: "",
     date_from: "",
     date_to: "",
@@ -28,6 +32,8 @@ export default function SearchPage() {
 
   useEffect(() => {
     client.get("/api/keywords/").then((r) => setKeywords(r.data));
+    client.get("/api/decisions/landlords").then((r) => setLandlords(r.data));
+    client.get("/api/decisions/hearing-officers").then((r) => setOfficers(r.data));
     search();
   }, []);
 
@@ -37,6 +43,8 @@ export default function SearchPage() {
     if (filters.keyword) params.append("keyword", filters.keyword);
     if (filters.city) params.append("city", filters.city);
     if (filters.decision_type) params.append("decision_type", filters.decision_type);
+    if (filters.landlord) params.append("landlord", filters.landlord);
+    if (filters.hearing_officer) params.append("hearing_officer", filters.hearing_officer);
     if (filters.q) params.append("q", filters.q);
     if (filters.date_from) params.append("date_from", filters.date_from);
     if (filters.date_to) params.append("date_to", filters.date_to);
@@ -70,7 +78,8 @@ export default function SearchPage() {
         onSubmit={handleSubmit}
         className="bg-white rounded-lg shadow p-6 mb-8 space-y-4"
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Row 1: Main filters */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Issue / Category
@@ -124,6 +133,49 @@ export default function SearchPage() {
               <option value="RemandAppealDecision">Remand Appeal</option>
             </select>
           </div>
+        </div>
+
+        {/* Row 2: Landlord, Hearing Officer, Search */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Landlord / Respondent
+            </label>
+            <select
+              value={filters.landlord}
+              onChange={(e) =>
+                setFilters({ ...filters, landlord: e.target.value })
+              }
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+            >
+              <option value="">All Landlords</option>
+              {landlords.map((l) => (
+                <option key={l} value={l}>
+                  {l}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Hearing Officer
+            </label>
+            <select
+              value={filters.hearing_officer}
+              onChange={(e) =>
+                setFilters({ ...filters, hearing_officer: e.target.value })
+              }
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+            >
+              <option value="">All Officers</option>
+              {officers.map((o) => (
+                <option key={o} value={o}>
+                  {o}
+                </option>
+              ))}
+            </select>
+          </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -139,7 +191,8 @@ export default function SearchPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Row 3: Date range */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Decision Date From
@@ -189,38 +242,63 @@ export default function SearchPage() {
               to={`/decision/${d.id}`}
               className="block bg-white rounded-lg shadow p-5 hover:shadow-md transition-shadow"
             >
-              <div className="flex justify-between items-start">
+              <div className="flex justify-between items-start mb-3">
+                <h3 className="font-semibold text-gray-900 text-lg">
+                  {d.address || "Address not available"}
+                  {d.unit && `, Unit ${d.unit}`}
+                </h3>
+                {d.amount_awarded != null && (
+                  <span className="text-sm font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded">
+                    ${d.amount_awarded.toLocaleString()}
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1 text-sm mb-3">
                 <div>
-                  <h3 className="font-semibold text-gray-900">
-                    {d.address || "Address not available"}
-                    {d.unit && `, Unit ${d.unit}`}
-                  </h3>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {d.city}
-                    {d.case_number && <> &middot; {d.case_number}</>}
-                    {" "}&middot; {formatType(d.decision_type)}
-                  </p>
+                  <span className="text-gray-400">City: </span>
+                  <span className="text-gray-700">{d.city}</span>
                 </div>
-                <div className="text-right">
-                  {d.decision_date && (
-                    <p className="text-sm text-gray-500">
+                {d.decision_date && (
+                  <div>
+                    <span className="text-gray-400">Date: </span>
+                    <span className="text-gray-700">
                       {new Date(d.decision_date).toLocaleDateString()}
-                    </p>
-                  )}
-                  {d.amount_awarded != null && (
-                    <p className="text-sm font-medium text-green-700">
-                      ${d.amount_awarded.toLocaleString()}
-                    </p>
-                  )}
+                    </span>
+                  </div>
+                )}
+                {d.case_number && (
+                  <div>
+                    <span className="text-gray-400">Case #: </span>
+                    <span className="text-gray-700">{d.case_number}</span>
+                  </div>
+                )}
+                {d.respondent_name && (
+                  <div>
+                    <span className="text-gray-400">Landlord: </span>
+                    <span className="text-gray-700">{d.respondent_name}</span>
+                  </div>
+                )}
+                {d.hearing_officer && (
+                  <div>
+                    <span className="text-gray-400">Hearing Officer: </span>
+                    <span className="text-gray-700">{d.hearing_officer}</span>
+                  </div>
+                )}
+                <div>
+                  <span className="text-gray-400">Type: </span>
+                  <span className="text-gray-700">{formatType(d.decision_type)}</span>
                 </div>
               </div>
+
               {d.outcome_summary && (
-                <p className="text-sm text-gray-600 mt-2 line-clamp-2">
+                <p className="text-sm text-gray-600 mb-3 line-clamp-2">
                   {d.outcome_summary}
                 </p>
               )}
+
               {d.keywords.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mt-3">
+                <div className="flex flex-wrap gap-1.5">
                   {d.keywords.slice(0, 5).map((k) => (
                     <span
                       key={k.id}
