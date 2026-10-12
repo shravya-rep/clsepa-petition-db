@@ -75,8 +75,8 @@ export default function AdminPage() {
         decision_date: d.decision_date || "",
         decision_type: d.decision_type || "HODecision",
         hearing_officer: d.hearing_officer || "",
-        outcome_summary: "",
-        amount_awarded: "",
+        outcome_summary: d.outcome_summary || "",
+        amount_awarded: d.amount_awarded || "",
       });
 
       if (d.confidence === "high") {

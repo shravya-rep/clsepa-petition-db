@@ -63,7 +63,8 @@ def _ai_extract(tmp_path: str, pdfplumber_result: dict) -> dict:
 - decision_date: Decision date in YYYY-MM-DD
 - decision_type: One of "HODecision", "AppealDecision", "HOCPDecision", "RemandAppealDecision"
 - hearing_officer: Name of hearing officer/examiner, or "Rental Housing Committee" for committee decisions
-- outcome_summary: Plain-language 1-2 sentence summary a tenant could understand. Was petition granted or denied? What rent reduction or rebate was ordered?
+- amount_awarded: Total dollar amount awarded/rebated as a number (e.g. 1100.00). null if none.
+- outcome_summary: One short sentence (max 20 words). Format: "Petition [granted/denied]. [Key outcome]." Example: "Petition granted. Rent reduced 10% for mold and plumbing issues, $1,100 rebate ordered."
 
 If cannot determine, use null."""}]
     else:
@@ -86,7 +87,7 @@ If cannot determine, use null."""}]
 - decision_date: Decision date in YYYY-MM-DD
 - decision_type: One of "HODecision", "AppealDecision", "HOCPDecision", "RemandAppealDecision"
 - hearing_officer: Name of hearing officer/examiner who signed the decision (check signature lines at the end), or "Rental Housing Committee" for committee decisions
-- outcome_summary: Plain-language 1-2 sentence summary a tenant could understand. Was petition granted or denied? What rent reduction or rebate was ordered? What were the main issues?
+- outcome_summary: One short sentence (max 20 words). Format: "Petition [granted/denied]. [Key outcome]." Example: "Petition granted. Rent reduced 10% for mold and plumbing issues, $1,100 rebate ordered." What were the main issues?
 
 If cannot determine, use null.
 
