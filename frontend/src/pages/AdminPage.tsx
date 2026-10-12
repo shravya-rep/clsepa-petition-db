@@ -79,6 +79,14 @@ export default function AdminPage() {
         amount_awarded: d.amount_awarded || "",
       });
 
+      // Auto-select suggested keywords
+      if (d.suggested_keywords && d.suggested_keywords.length > 0 && keywords.length > 0) {
+        const matchedIds = keywords
+          .filter((k) => d.suggested_keywords.includes(k.name))
+          .map((k) => k.id);
+        setSelectedKeywords(matchedIds);
+      }
+
       if (d.confidence === "high") {
         setExtractInfo("Fields auto-filled from PDF. Please review before uploading.");
       } else if (d.confidence === "medium") {
