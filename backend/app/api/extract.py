@@ -88,7 +88,9 @@ If cannot determine, use null."""}]
 - decision_date: Decision date in YYYY-MM-DD
 - decision_type: One of "HODecision", "AppealDecision", "HOCPDecision", "RemandAppealDecision"
 - hearing_officer: Name of hearing officer/examiner who signed the decision (check signature lines at the end), or "Rental Housing Committee" for committee decisions
-- outcome_summary: One short sentence (max 20 words). Format: "Petition [granted/denied]. [Key outcome]." Example: "Petition granted. Rent reduced 10% for mold and plumbing issues, $1,100 rebate ordered." What were the main issues?
+- amount_awarded: Total dollar amount awarded/rebated as a number (e.g. 1100.00). null if none.
+- outcome_summary: One short sentence (max 20 words). Format: "Petition [granted/denied]. [Key outcome]." Example: "Petition granted. Rent reduced 10% for mold and plumbing issues, $1,100 rebate ordered."
+- suggested_keywords: Array of applicable issue categories from this list ONLY: ["Mold", "Plumbing", "Electrical", "Heat", "Rent Overcharge", "Habitability", "Code Violations", "Pest Infestation", "Water", "Appliance", "Structural", "Common Area Maintenance", "Security", "Carpet", "Patio", "Smoke Detectors", "Rent Reduction", "Rent Rebate"]. Select all that apply based on the issues discussed.
 
 If cannot determine, use null.
 
